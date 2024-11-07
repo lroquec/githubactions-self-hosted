@@ -8,9 +8,9 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install the project dependencies
-RUN apt update
-RUN apt upgrade -y
-RUN pip install -r requirements.txt
+RUN apt update \
+&& apt upgrade -y \
+&& pip install -r requirements.txt
 
 # Copy the application code into the container
 COPY . .
