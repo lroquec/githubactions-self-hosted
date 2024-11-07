@@ -31,7 +31,6 @@ jobs:
          uses: py-actions/flake8@v2
 
    sonarcloud:
-     needs: [flake8-lint]
      runs-on: ubuntu-latest
      name: review code
      steps:
@@ -45,7 +44,7 @@ jobs:
            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
    build:
-     needs: [sonarcloud]
+     needs: [flake8-lint,sonarcloud]
      runs-on: ubuntu-latest
      steps:
        - name: Set up QEMU
