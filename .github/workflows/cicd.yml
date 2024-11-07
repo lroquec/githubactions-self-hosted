@@ -30,8 +30,22 @@ jobs:
        - name: flake8 Lint
          uses: py-actions/flake8@v2
 
-   build:
+   sonarcloud:
      needs: [flake8-lint]
+     runs-on: ubuntu-latest
+     name: review code
+     steps:
+       - uses: actions/checkout@v4
+         with:
+           # Disabling shallow clone is recommended for improving relevancy of reporting
+           fetch-depth: 0
+       - name: SonarCloud Scan
+         uses: sonarsource/sonarcloud-github-action@v3.1.0 # Ex: v2.1.0, See the latest version at https://github.com/marketplace/actions/sonarcloud-scan
+         env:
+           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+   build:
+     needs: [sonarcloud]
      runs-on: ubuntu-latest
      steps:
        - name: Set up QEMU
