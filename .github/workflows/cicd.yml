@@ -161,7 +161,7 @@ jobs:
 
    deploy-dev:
      needs: [e2e-test]
-     runs-on: docker
+     runs-on: "docker"
      steps:
        - name: run docker app
          run: docker run --name $app_name -d -p 5000:5000 "$docker_user/$app_name:latest"
