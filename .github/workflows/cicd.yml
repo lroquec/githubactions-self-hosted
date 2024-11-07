@@ -42,6 +42,7 @@ jobs:
            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
    unit-test:
+     needs: [flake8-lint]
      runs-on: ubuntu-latest
      steps:
        - uses: actions/checkout@v4
@@ -55,7 +56,7 @@ jobs:
            python -m unittest tests/unit_test_app.py
 
    build-push:
-     needs: [flake8-lint,sonarcloud]
+     needs: [sonarcloud,unit-test]
      runs-on: ubuntu-latest
      steps:
        - name: Set up QEMU
