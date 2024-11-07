@@ -16,16 +16,17 @@ jobs:
          uses: styfle/cancel-workflow-action@0.12.1
          with:
            access_token: ${{ github.token }}
-   lint_code:
-     runs-on: "self-hosted" ##ubuntu-20.04
+   ruff_check:
+     runs-on: "self-hosted"
      steps:
-       - name: Checkput code
-         uses: actions/checkout@v4 
-       - name: Python Linter
-         uses: sunnysid3up/python-linter@master
+       - uses: actions/checkout@v4
+       - name: ruff check
+         uses: astral-sh/ruff-action@v1
+   ruff_format:
+     runs-on: "self-hosted"
+     steps:
+       - uses: actions/checkout@v4
+       - name: ruff format
+         uses: astral-sh/ruff-action@v1
          with:
-           source: "."
-           mypy-options: "--ignore-missing-imports --show-error-codes"
-           pylint-options: "--rcfile=setup.cfg"
-           isort-options: "-w 100"
-           django: false
+           args: "format --check"
