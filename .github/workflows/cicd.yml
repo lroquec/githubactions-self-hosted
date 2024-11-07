@@ -1,0 +1,27 @@
+name: my python flask app
+on: 
+#  push: 
+#    branches: 
+#      - main
+  workflow_dispatch:
+env:
+  docker_pass: ${{ secrets.DOCKER_PASS }}
+  docker_user: ${{ secrets.DOCKER_USERNAME }}
+  app_name: ${{ vars.IMAGE_NAME }}
+jobs:
+   avoid_redundancy:
+     runs-on: "self-hosted" ##ubuntu-20.04
+     steps:
+       - name: Cancel Workflow Action
+         uses: styfle/cancel-workflow-action@0.12.1
+         with:
+           access_token: ${{ github.token }}
+   lint_code:
+     runs-on: "self-hosted" ##ubuntu-20.04
+     steps:
+       - name: Checkput code
+         uses: actions/checkout@v4 
+       - name: lint
+         uses: advanced-security/python-lint-code-scanning-action@v1
+         with:
+           linter: flake8
