@@ -160,7 +160,7 @@ jobs:
            retention-days: 1
 
    deploy-dev:
-     needs: [e2e-test]
+     needs: [trivy-image-check]
      runs-on: "docker"
      steps:
        - name: run docker app
