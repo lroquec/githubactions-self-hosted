@@ -19,7 +19,6 @@ jobs:
 
    flake8-lint:
      runs-on: ubuntu-latest
-     name: Lint
      steps:
        - name: Check out source repository
          uses: actions/checkout@v4
@@ -32,7 +31,6 @@ jobs:
 
    sonarcloud:
      runs-on: ubuntu-latest
-     name: review code
      steps:
        - uses: actions/checkout@v4
          with:
@@ -46,10 +44,18 @@ jobs:
    unit-test:
      runs-on: ubuntu-latest
      steps:
+       - uses: actions/setup-python@v5
+         with:
+           python-version: 3.12
+           cache: 'pip'
+       - uses: actions/checkout@v4
+         with:
+           # Disabling shallow clone is recommended for improving relevancy of reporting
+           fetch-depth: 0
        - name: run very simple unit test
          run: python -m unittest tests/unit_test_app.py
 
-   build:
+   build-push:
      needs: [flake8-lint,sonarcloud]
      runs-on: ubuntu-latest
      steps:
