@@ -21,7 +21,11 @@ jobs:
      steps:
        - name: Checkput code
          uses: actions/checkout@v4 
-       - name: lint
-         uses: advanced-security/python-lint-code-scanning-action@v1
+       - name: Python Linter
+         uses: sunnysid3up/python-linter@master
          with:
-           linter: flake8
+           source: "."
+           mypy-options: "--ignore-missing-imports --show-error-codes"
+           pylint-options: "--rcfile=setup.cfg"
+           isort-options: "-w 100"
+           django: false
