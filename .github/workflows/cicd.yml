@@ -30,31 +30,8 @@ jobs:
        - name: flake8 Lint
          uses: py-actions/flake8@v2
 
-   trivy-check:
-     runs-on: ubuntu-latest
-     permissions:
-       contents: read
-     steps:
-       - name: Check out Git repository
-         uses: actions/checkout@v4
-       - name: Generate Trivy Vulnerability Report
-         uses: aquasecurity/trivy-action@master
-         with:
-           scan-type: "fs"
-           output: trivy-report.sarif
-           format: sarif
-           scan-ref: .
-           severity: 'CRITICAL,HIGH'
-           exit-code: 1
-       - name: Upload Vulnerability Scan Results
-         uses: actions/upload-artifact@v4
-         with:
-           name: trivy-report
-           path: trivy-report.sarif
-           retention-days: 1
-
    build:
-     needs: [flake8-lint, trivy-check]
+     needs: [flake8-lint]
      runs-on: ubuntu-latest
      steps:
        - name: Set up QEMU
@@ -80,8 +57,15 @@ jobs:
          uses: aquasecurity/trivy-action@0.28.0
          with:
            image-ref: 'docker.io/${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest'
-           format: 'table'
+           output: trivy-report.sarif
+           format: sarif
            exit-code: '1'
            ignore-unfixed: true
            vuln-type: 'os,library'
-           severity: 'CRITICAL'
+           severity: 'CRITICAL,HIGH'
+       - name: Upload Vulnerability Scan Results
+         uses: actions/upload-artifact@v4
+         with:
+           name: trivy-report
+           path: trivy-report.sarif
+           retention-days: 1
