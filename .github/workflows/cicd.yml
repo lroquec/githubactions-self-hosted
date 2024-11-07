@@ -51,7 +51,7 @@ jobs:
          with:
            name: trivy-report
            path: trivy-report.sarif
-           retention-days: 10
+           retention-days: 1
 
    build:
      needs: [flake8-lint, trivy-check]
@@ -70,4 +70,18 @@ jobs:
          uses: docker/build-push-action@v6
          with:
            push: true
-           tags: ${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest
+           tags: ${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
+
+   trivy-image-check:
+     needs: [build]
+     runs-on: ubuntu-latest
+     steps:
+       - name: Run Trivy vulnerability scanner
+         uses: aquasecurity/trivy-action@0.28.0
+         with:
+           image-ref: 'docker.io/${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}'
+           format: 'table'
+           exit-code: '1'
+           ignore-unfixed: true
+           vuln-type: 'os,library'
+           severity: 'CRITICAL,HIGH'
