@@ -1,4 +1,4 @@
-# My Python Flask App - CI/CD Workflow
+# CI/CD Workflow using GitHub Actions
 ## _Very simple project to demonstrate github actions end-to-end testing and deployed on self-hosted runners_
 
 ![Workflow Diagram](./workflow-diagram.png)
