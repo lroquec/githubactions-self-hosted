@@ -75,7 +75,7 @@ jobs:
            tags: ${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest
 
    trivy-image-check:
-     needs: [build]
+     needs: [build-push]
      runs-on: ubuntu-latest
      steps:
        - name: Run Trivy vulnerability scanner
