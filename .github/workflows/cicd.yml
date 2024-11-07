@@ -42,7 +42,7 @@ jobs:
            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
    unit-test:
-     needs: [flake8-lint]
+     needs: [flake8-lint,sonarcloud]
      runs-on: ubuntu-latest
      steps:
        - uses: actions/checkout@v4
@@ -54,46 +54,6 @@ jobs:
          run: |
            pip install -r requirements.txt
            python -m unittest tests/unit_test_app.py
-
-   build-push:
-     needs: [sonarcloud,unit-test]
-     runs-on: ubuntu-latest
-     steps:
-       - name: Set up QEMU
-         uses: docker/setup-qemu-action@v3
-       - name: Set up Docker Buildx
-         uses: docker/setup-buildx-action@v3
-       - name: login to docker hub
-         uses: docker/login-action@v3
-         with:
-           username: ${{ secrets.DOCKER_USERNAME }}
-           password: ${{ secrets.DOCKER_PASS }}
-       - name: build and push image
-         uses: docker/build-push-action@v6
-         with:
-           push: true
-           tags: ${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest
-
-   trivy-image-check:
-     needs: [build-push]
-     runs-on: ubuntu-latest
-     steps:
-       - name: Run Trivy vulnerability scanner
-         uses: aquasecurity/trivy-action@0.28.0
-         with:
-           image-ref: 'docker.io/${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest'
-           output: trivy-report.sarif
-           format: sarif
-           exit-code: '1'
-           ignore-unfixed: true
-           vuln-type: 'os,library'
-           severity: 'CRITICAL,HIGH'
-       - name: Upload Vulnerability Scan Results
-         uses: actions/upload-artifact@v4
-         with:
-           name: trivy-report
-           path: trivy-report.sarif
-           retention-days: 1
 
    e2e-test:
      needs: [flake8-lint,sonarcloud]
@@ -158,3 +118,61 @@ jobs:
          if: always()
          run: |
            docker image rm "$docker_user/$app_name:latest"
+
+   build-push:
+     needs: [unit-test,e2e-test]
+     runs-on: ubuntu-latest
+     steps:
+       - name: Set up QEMU
+         uses: docker/setup-qemu-action@v3
+       - name: Set up Docker Buildx
+         uses: docker/setup-buildx-action@v3
+       - name: login to docker hub
+         uses: docker/login-action@v3
+         with:
+           username: ${{ secrets.DOCKER_USERNAME }}
+           password: ${{ secrets.DOCKER_PASS }}
+       - name: build and push image
+         uses: docker/build-push-action@v6
+         with:
+           push: true
+           tags: ${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest
+
+   trivy-image-check:
+     needs: [build-push]
+     runs-on: ubuntu-latest
+     steps:
+       - name: Run Trivy vulnerability scanner
+         uses: aquasecurity/trivy-action@0.28.0
+         with:
+           image-ref: 'docker.io/${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest'
+           output: trivy-report.sarif
+           format: sarif
+           exit-code: '1'
+           ignore-unfixed: true
+           vuln-type: 'os,library'
+           severity: 'CRITICAL,HIGH'
+       - name: Upload Vulnerability Scan Results
+         uses: actions/upload-artifact@v4
+         with:
+           name: trivy-report
+           path: trivy-report.sarif
+           retention-days: 1
+
+   deploy-dev:
+     needs: [e2e-test]
+     runs-on: docker
+     steps:
+       - name: run docker app
+         run: docker run --name $app_name -d -p 5000:5000 "$docker_user/$app_name:latest"
+       - name: Wait for services to be ready
+         run: |
+            for i in {1..10}; do
+              if nc -zv localhost 5000; then
+                echo "Application is up!"
+                break
+              else
+                echo "Waiting for application and Selenium..."
+                sleep 5
+              fi
+            done         
