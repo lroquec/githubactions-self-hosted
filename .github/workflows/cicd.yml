@@ -28,3 +28,26 @@ jobs:
            python-version: "3.11"
        - name: flake8 Lint
          uses: py-actions/flake8@v2
+   test:
+     runs-on: ubuntu-latest
+     permissions:
+       contents: read
+     steps:
+       - name: Check out Git repository
+         uses: actions/checkout@v4
+
+       - name: Generate Trivy Vulnerability Report
+         uses: aquasecurity/trivy-action@master
+         with:
+           scan-type: "fs"
+           output: trivy-report.sarif
+           format: sarif
+           scan-ref: .
+           exit-code: 1
+
+       - name: Upload Vulnerability Scan Results
+         uses: actions/upload-artifact@v4
+         with:
+           name: trivy-report
+           path: trivy-report.sarif
+           retention-days: 10
