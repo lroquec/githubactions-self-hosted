@@ -70,4 +70,4 @@ jobs:
          uses: docker/build-push-action@v6
          with:
            push: true
-           tags: $docker_user/$app_name:latest
+           tags: user/$app_name:latest
