@@ -1,5 +1,5 @@
 # Base image
-FROM bitnami/python:3.9.20
+FROM bitnami/python:3.11.4
 
 # Set the working directory inside the container
 WORKDIR /app
