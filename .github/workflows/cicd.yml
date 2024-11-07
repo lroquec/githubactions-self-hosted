@@ -10,23 +10,21 @@ env:
   app_name: ${{ vars.IMAGE_NAME }}
 jobs:
    avoid_redundancy:
-     runs-on: "self-hosted" ##ubuntu-20.04
+     runs-on: ubuntu-latest ##ubuntu-20.04
      steps:
        - name: Cancel Workflow Action
          uses: styfle/cancel-workflow-action@0.12.1
          with:
            access_token: ${{ github.token }}
-   ruff_check:
-     runs-on: "self-hosted"
+   flake8-lint:
+     runs-on: ubuntu-latest
+     name: Lint
      steps:
-       - uses: actions/checkout@v4
-       - name: ruff check
-         uses: astral-sh/ruff-action@v1
-   ruff_format:
-     runs-on: "self-hosted"
-     steps:
-       - uses: actions/checkout@v4
-       - name: ruff format
-         uses: astral-sh/ruff-action@v1
+       - name: Check out source repository
+         uses: actions/checkout@v3
+       - name: Set up Python environment
+         uses: actions/setup-python@v4
          with:
-           args: "format --check"
+           python-version: "3.11"
+       - name: flake8 Lint
+         uses: py-actions/flake8@v2
