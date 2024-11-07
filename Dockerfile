@@ -1,5 +1,5 @@
 # Base image
-FROM bitnami/python:3.11.4
+FROM python:3.12
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -8,6 +8,8 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install the project dependencies
+RUN apt update
+RUN apt upgrade
 RUN pip install -r requirements.txt
 
 # Copy the application code into the container
