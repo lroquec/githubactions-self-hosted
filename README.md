@@ -1,5 +1,5 @@
 # CI/CD Workflow using GitHub Actions
-## _Very simple project to demonstrate github actions end-to-end testing and deployed on self-hosted runners_
+## _Very simple project to demonstrate GitHub Actions CI/CD with end-to-end testing and deployed on self-hosted runners_
 
 ![Workflow Diagram](./workflow-diagram.png)
 
@@ -7,7 +7,7 @@
 
 ### Workflow Triggers
 
-- **`workflow_dispatch`**: This workflow can be triggered manually from GitHub Actions.
+- **`workflow_dispatch`**: This workflow can be triggered manually from GitHub Actions, though in real life you should use the commented out options for push and pull_request.
 
 ### Environment Variables
 
