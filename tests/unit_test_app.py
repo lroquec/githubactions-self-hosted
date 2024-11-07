@@ -3,6 +3,7 @@ from app import app
 
 class TestFlaskApp(unittest.TestCase):
 
+
     def setUp(self):
         # Configure test client
         app.testing = True
@@ -11,10 +12,10 @@ class TestFlaskApp(unittest.TestCase):
     def test_home_page(self):
         # Send a GET request to path `/`
         response = self.client.get('/')
-        
+
         # Verify response 200 (OK)
         self.assertEqual(response.status_code, 200)
-        
+
         # Verify content in response
         self.assertIn(b'Hello, world from a very simple Python app!', response.data)
 
