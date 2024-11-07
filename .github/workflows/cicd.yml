@@ -28,7 +28,7 @@ jobs:
            python-version: "3.11"
        - name: flake8 Lint
          uses: py-actions/flake8@v2
-   test:
+   trivy-check:
      runs-on: ubuntu-latest
      permissions:
        contents: read
