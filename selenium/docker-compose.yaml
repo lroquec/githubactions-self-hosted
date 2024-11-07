@@ -1,0 +1,93 @@
+services:
+  chrome:
+    image: selenium/node-chrome:4.25.0-20241024
+    shm_size: 2gb
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    networks:
+      - test_network
+
+  edge:
+    image: selenium/node-edge:4.25.0-20241024
+    shm_size: 2gb
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    networks:
+      - test_network
+
+  firefox:
+    image: selenium/node-firefox:4.25.0-20241024
+    shm_size: 2gb
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    networks:
+      - test_network
+
+  chrome_video:
+    image: selenium/video:ffmpeg-7.1-20241024
+    volumes:
+      - /tmp/videos:/videos
+    depends_on:
+      - chrome
+    environment:
+      - DISPLAY_CONTAINER_NAME=chrome
+      - SE_NODE_GRID_URL=http://selenium-hub:4444
+#      - FILE_NAME=chrome_video.mp4
+      - SE_VIDEO_FILE_NAME=auto
+    networks:
+      - test_network
+
+  edge_video:
+    image: selenium/video:ffmpeg-7.1-20241024
+    volumes:
+      - /tmp/videos:/videos
+    depends_on:
+      - edge
+    environment:
+      - DISPLAY_CONTAINER_NAME=edge
+      - SE_NODE_GRID_URL=http://selenium-hub:4444
+#      - FILE_NAME=edge_video.mp4
+      - SE_VIDEO_FILE_NAME=auto
+    networks:
+      - test_network
+
+  firefox_video:
+    image: selenium/video:ffmpeg-7.1-20241024
+    volumes:
+      - /tmp/videos:/videos
+    depends_on:
+      - firefox
+    environment:
+      - DISPLAY_CONTAINER_NAME=firefox
+      - SE_NODE_GRID_URL=http://selenium-hub:4444
+#      - FILE_NAME=firefox_video.mp4
+      - SE_VIDEO_FILE_NAME=auto
+    networks:
+      - test_network
+
+  selenium-hub:
+    image: selenium/hub:4.25.0-20241024
+    container_name: selenium-hub
+    ports:
+      - "4442:4442"
+      - "4443:4443"
+      - "4444:4444"
+    networks:
+      - test_network
+
+networks:
+  test_network:
+    external: true
+    name: test_network
