@@ -104,3 +104,4 @@
 
 ## Additional Notes
 - Make sure that on your self-hosted runner for testing and deployment you have a working docker installation and a docker network **`test_network`** created.
+- Please check all the actions at the market place for updates.
