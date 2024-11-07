@@ -2,9 +2,10 @@ from flask import Flask
 
 app = Flask(__name__)
 
-@app.route('/')
+
+@app.route("/")
 def hello():
-    return '''
+    return """
         <html>
             <head>
                 <title>Simple Python App</title>
@@ -24,7 +25,8 @@ def hello():
                 <h1>Hello, world from a very simple Python app!</h1>
             </body>
         </html>
-    '''
+    """
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app.run(host="0.0.0.0")
