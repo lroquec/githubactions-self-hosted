@@ -79,7 +79,7 @@ jobs:
          id: start_selenium
          run: |
            docker compose up -d
-         working-directory: /home/laura/selenium
+         working-directory: ./selenium
        - name: Run application container
          id: run_app_container
          run: |
