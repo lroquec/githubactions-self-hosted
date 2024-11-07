@@ -9,7 +9,7 @@ COPY requirements.txt .
 
 # Install the project dependencies
 RUN apt update
-RUN apt upgrade
+RUN apt upgrade -y
 RUN pip install -r requirements.txt
 
 # Copy the application code into the container
