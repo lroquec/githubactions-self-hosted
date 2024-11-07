@@ -167,8 +167,11 @@ jobs:
      needs: [trivy-image-check]
      runs-on: "docker"
      steps:
-       - name: run docker app
-         run: docker run --name $app_name -d -p 5000:5000 "$docker_user/$app_name:latest"
+       - name: Run docker app (stop and remove if exists)
+         run: |
+           (docker stop $app_name && docker rm $app_name) || true
+           docker pull "$docker_user/$app_name:latest"
+           docker run --name $app_name -d -p 5000:5000 "$docker_user/$app_name:latest"
        - name: Wait for services to be ready
          run: |
             for i in {1..10}; do
