@@ -44,16 +44,15 @@ jobs:
    unit-test:
      runs-on: ubuntu-latest
      steps:
+       - uses: actions/checkout@v4
        - uses: actions/setup-python@v5
          with:
-           python-version: 3.12
+           python-version: "3.12"
            cache: 'pip'
-       - uses: actions/checkout@v4
-         with:
-           # Disabling shallow clone is recommended for improving relevancy of reporting
-           fetch-depth: 0
        - name: run very simple unit test
-         run: python -m unittest tests/unit_test_app.py
+         run: |
+           pip install -r requirements.txt
+           python -m unittest tests/unit_test_app.py
 
    build-push:
      needs: [flake8-lint,sonarcloud]
