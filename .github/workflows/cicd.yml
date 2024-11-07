@@ -43,6 +43,12 @@ jobs:
          env:
            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+   unit-test:
+     runs-on: ubuntu-latest
+     steps:
+       - name: run very simple unit test
+         run: python -m unittest tests/unit_test_app.py
+
    build:
      needs: [flake8-lint,sonarcloud]
      runs-on: ubuntu-latest
@@ -82,3 +88,67 @@ jobs:
            name: trivy-report
            path: trivy-report.sarif
            retention-days: 1
+
+   e2e-test:
+     needs: [flake8-lint,sonarcloud]
+     runs-on: "self-hosted"
+     steps:
+       - uses: actions/checkout@v4       
+       - uses: actions/setup-python@v5
+         with:
+           python-version: 3.12
+           cache: 'pip'
+       - name: install requirements with pip
+         run: |
+           pip install selenium
+           pip install pytest
+       - name: login to DockerHub 
+         run: |
+           echo "Login in DockerHub..." 
+           echo "$docker_pass" | docker login --username "$docker_user" --password-stdin
+       - name: build image
+         run: |
+           docker build . --file Dockerfile --tag "$docker_user/$app_name:latest"
+       - name: Start Selenium Grid with docker-compose
+         id: start_selenium
+         run: |
+           docker compose up -d
+         working-directory: /home/laura/selenium
+       - name: Run application container
+         id: run_app_container
+         run: |
+           docker run -d --name app_container --network test_network -p 5000:5000 "$docker_user/$app_name:latest"
+       - name: Wait for services to be ready
+         run: |
+            for i in {1..20}; do
+              if nc -zv localhost 5000 && nc -zv localhost 4444; then
+                echo "Application and Selenium are up!"
+                break
+              else
+                echo "Waiting for application and Selenium..."
+                sleep 5
+              fi
+            done
+       - name: Run test script
+         env:
+           SELENIUM_HOST: localhost
+           SELENIUM_PORT: 4444
+           APP_HOST: app_container
+           APP_PORT: 5000
+           BROWSER: chrome
+         run: |
+           python3 -m pytest tests/ -s --junitxml=report.xml
+       - name: Stop and remove application container
+         if: always() && steps.run_app_container.outcome == 'success'
+         run: |
+           docker stop app_container || true
+           docker rm app_container || true
+       - name: Stop and remove Selenium Grid
+         if: always() && steps.start_selenium.outcome == 'success'
+         run: |
+           docker compose down || true
+         working-directory: /home/laura/selenium
+       - name: Remove local image
+         if: always()
+         run: |
+           docker image rm "$docker_user/$app_name:latest"
