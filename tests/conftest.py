@@ -47,4 +47,5 @@ def driver():
     try:
         driver.quit()
     except Exception as e:
-        print(f"Error closing the driver: {e})
+        print(f"Error closing the driver: {e}")
+
