@@ -1,12 +1,12 @@
 name: my python flask app
 on: 
-#  push: 
-#    branches: 
-#      - main
+  push: 
+    branches: 
+      - main
 #  pull_request:
 #    branches: [main]
 #    types: [opened, synchronize]
-  workflow_dispatch:
+#  workflow_dispatch:
 env:
   docker_pass: ${{ secrets.DOCKER_PASS }}
   docker_user: ${{ secrets.DOCKER_USERNAME }}

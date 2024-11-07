@@ -7,7 +7,7 @@
 
 ### Workflow Triggers
 
-- **`workflow_dispatch`**: This workflow can be triggered manually from GitHub Actions, though in real life you should use the commented out options for push and pull_request.
+- **`push`**: This workflow can be triggered automatically on push event on branch main.
 
 ### Environment Variables
 
