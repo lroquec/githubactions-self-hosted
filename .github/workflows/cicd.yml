@@ -70,7 +70,7 @@ jobs:
          uses: docker/build-push-action@v6
          with:
            push: true
-           tags: ${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
+           tags: ${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest
 
    trivy-image-check:
      needs: [build]
@@ -79,7 +79,7 @@ jobs:
        - name: Run Trivy vulnerability scanner
          uses: aquasecurity/trivy-action@0.28.0
          with:
-           image-ref: 'docker.io/${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}'
+           image-ref: 'docker.io/${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest'
            format: 'table'
            exit-code: '1'
            ignore-unfixed: true
