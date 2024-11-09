@@ -11,175 +11,170 @@ env:
   docker_pass: ${{ secrets.DOCKER_PASS }}
   docker_user: ${{ secrets.DOCKER_USERNAME }}
   app_name: ${{ vars.IMAGE_NAME }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-   avoid_redundancy:
-     runs-on: ubuntu-latest ##ubuntu-20.04
-     steps:
-       - name: Cancel Workflow Action
-         uses: styfle/cancel-workflow-action@0.12.1
-         with:
-           access_token: ${{ github.token }}
+  flake8-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@v4
+      - name: Set up Python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: flake8 Lint
+        uses: py-actions/flake8@v2
 
-   flake8-lint:
-     runs-on: ubuntu-latest
-     steps:
-       - name: Check out source repository
-         uses: actions/checkout@v4
-       - name: Set up Python environment
-         uses: actions/setup-python@v4
-         with:
-           python-version: "3.11"
-       - name: flake8 Lint
-         uses: py-actions/flake8@v2
+  sonarcloud:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 0
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@v3.1.0 # Ex: v3.1.0, See the latest version at https://github.com/marketplace/actions/sonarcloud-scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-   sonarcloud:
-     runs-on: ubuntu-latest
-     steps:
-       - uses: actions/checkout@v4
-         with:
-           # Disabling shallow clone is recommended for improving relevancy of reporting
-           fetch-depth: 0
-       - name: SonarCloud Scan
-         uses: sonarsource/sonarcloud-github-action@v3.1.0 # Ex: v2.1.0, See the latest version at https://github.com/marketplace/actions/sonarcloud-scan
-         env:
-           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  unit-test:
+    needs: [flake8-lint,sonarcloud]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: 'pip'
+      - name: run very simple unit test
+        run: |
+          pip install -r requirements.txt
+          python -m unittest tests/unit_test_app.py
 
-   unit-test:
-     needs: [flake8-lint,sonarcloud]
-     runs-on: ubuntu-latest
-     steps:
-       - uses: actions/checkout@v4
-       - uses: actions/setup-python@v5
-         with:
-           python-version: "3.12"
-           cache: 'pip'
-       - name: run very simple unit test
-         run: |
-           pip install -r requirements.txt
-           python -m unittest tests/unit_test_app.py
+  e2e-test:
+    needs: [trivy-image-check]
+    runs-on: "self-hosted"
+    steps:
+      - uses: actions/checkout@v4       
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip'
+      - name: install requirements with pip
+        run: |
+          pip install selenium
+          pip install pytest
+      - name: login to DockerHub 
+        run: |
+          echo "Login in DockerHub..." 
+          echo "$docker_pass" | docker login --username "$docker_user" --password-stdin
+      - name: build image
+        run: |
+          docker build . --file Dockerfile --tag "$docker_user/$app_name:latest"
+      - name: Start Selenium Grid with docker-compose
+        id: start_selenium
+        run: |
+          docker compose up -d
+        working-directory: ./selenium
+      - name: Run application container
+        id: run_app_container
+        run: |
+          docker run -d --name app_container --network test_network -p 5000:5000 "$docker_user/$app_name:latest"
+      - name: Wait for services to be ready
+        run: |
+          for i in {1..20}; do
+            if nc -zv localhost 5000 && nc -zv localhost 4444; then
+              echo "Application and Selenium are up!"
+              break
+            else
+              echo "Waiting for application and Selenium..."
+              sleep 5
+            fi
+          done
+      - name: Run test script
+        env:
+          SELENIUM_HOST: localhost
+          SELENIUM_PORT: 4444
+          APP_HOST: app_container
+          APP_PORT: 5000
+          BROWSER: chrome
+        run: |
+          python3 -m pytest tests/ -s --junitxml=report.xml
+      - name: Stop and remove application container
+        if: always() && steps.run_app_container.outcome == 'success'
+        run: |
+          docker stop app_container || true
+          docker rm app_container || true
+      - name: Stop and remove Selenium Grid
+        if: always() && steps.start_selenium.outcome == 'success'
+        run: |
+          docker compose down || true
+        working-directory: /home/laura/selenium
+      - name: Remove local image
+        if: always()
+        run: |
+          docker image rm "$docker_user/$app_name:latest"
 
-   e2e-test:
-     needs: [flake8-lint,sonarcloud]
-     runs-on: "self-hosted"
-     steps:
-       - uses: actions/checkout@v4       
-       - uses: actions/setup-python@v5
-         with:
-           python-version: 3.12
-           cache: 'pip'
-       - name: install requirements with pip
-         run: |
-           pip install selenium
-           pip install pytest
-       - name: login to DockerHub 
-         run: |
-           echo "Login in DockerHub..." 
-           echo "$docker_pass" | docker login --username "$docker_user" --password-stdin
-       - name: build image
-         run: |
-           docker build . --file Dockerfile --tag "$docker_user/$app_name:latest"
-       - name: Start Selenium Grid with docker-compose
-         id: start_selenium
-         run: |
-           docker compose up -d
-         working-directory: ./selenium
-       - name: Run application container
-         id: run_app_container
-         run: |
-           docker run -d --name app_container --network test_network -p 5000:5000 "$docker_user/$app_name:latest"
-       - name: Wait for services to be ready
-         run: |
-            for i in {1..20}; do
-              if nc -zv localhost 5000 && nc -zv localhost 4444; then
-                echo "Application and Selenium are up!"
-                break
-              else
-                echo "Waiting for application and Selenium..."
-                sleep 5
-              fi
-            done
-       - name: Run test script
-         env:
-           SELENIUM_HOST: localhost
-           SELENIUM_PORT: 4444
-           APP_HOST: app_container
-           APP_PORT: 5000
-           BROWSER: chrome
-         run: |
-           python3 -m pytest tests/ -s --junitxml=report.xml
-       - name: Stop and remove application container
-         if: always() && steps.run_app_container.outcome == 'success'
-         run: |
-           docker stop app_container || true
-           docker rm app_container || true
-       - name: Stop and remove Selenium Grid
-         if: always() && steps.start_selenium.outcome == 'success'
-         run: |
-           docker compose down || true
-         working-directory: /home/laura/selenium
-       - name: Remove local image
-         if: always()
-         run: |
-           docker image rm "$docker_user/$app_name:latest"
+  build-push:
+    needs: [unit-test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: login to docker hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASS }}
+      - name: build and push image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest
 
-   build-push:
-     needs: [unit-test,e2e-test]
-     runs-on: ubuntu-latest
-     steps:
-       - name: Set up QEMU
-         uses: docker/setup-qemu-action@v3
-       - name: Set up Docker Buildx
-         uses: docker/setup-buildx-action@v3
-       - name: login to docker hub
-         uses: docker/login-action@v3
-         with:
-           username: ${{ secrets.DOCKER_USERNAME }}
-           password: ${{ secrets.DOCKER_PASS }}
-       - name: build and push image
-         uses: docker/build-push-action@v6
-         with:
-           push: true
-           tags: ${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest
+  trivy-image-check:
+    needs: [build-push]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: 'docker.io/${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest'
+          output: trivy-report.sarif
+          format: sarif
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+      - name: Upload Vulnerability Scan Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.sarif
+          retention-days: 1
 
-   trivy-image-check:
-     needs: [build-push]
-     runs-on: ubuntu-latest
-     steps:
-       - name: Run Trivy vulnerability scanner
-         uses: aquasecurity/trivy-action@0.28.0
-         with:
-           image-ref: 'docker.io/${{ secrets.DOCKER_USERNAME }}/${{ vars.IMAGE_NAME }}:latest'
-           output: trivy-report.sarif
-           format: sarif
-           exit-code: '1'
-           ignore-unfixed: true
-           vuln-type: 'os,library'
-           severity: 'CRITICAL,HIGH'
-       - name: Upload Vulnerability Scan Results
-         uses: actions/upload-artifact@v4
-         with:
-           name: trivy-report
-           path: trivy-report.sarif
-           retention-days: 1
-
-   deploy-dev:
-#    if: ${{ github.event_name == 'push' }}
-     needs: [trivy-image-check]
-     runs-on: "docker"
-     steps:
-       - name: Run docker app (stop and remove if exists)
-         run: |
-           (docker stop $app_name && docker rm $app_name) || true
-           docker pull "$docker_user/$app_name:latest"
-           docker run --name $app_name -d -p 5000:5000 "$docker_user/$app_name:latest"
-       - name: Wait for services to be ready
-         run: |
-            for i in {1..10}; do
-              if nc -zv localhost 5000; then
-                echo "Application is up!"
-                break
-              else
-                echo "Waiting for application and Selenium..."
-                sleep 5
-              fi
-            done         
+  deploy-dev:
+    if: ${{ github.event_name == 'push' }}
+    needs: [e2e-test]
+    runs-on: "docker"
+    steps:
+      - name: Run docker app (stop and remove if exists)
+        run: |
+          (docker stop $app_name && docker rm $app_name) || true
+          docker pull "$docker_user/$app_name:latest"
+          docker run --name $app_name -d -p 5000:5000 "$docker_user/$app_name:latest"
+      - name: Wait for services to be ready
+        run: |
+          for i in {1..10}; do
+            if nc -zv localhost 5000; then
+              echo "Application is up!"
+              break
+            else
+              echo "Waiting for application and Selenium..."
+              sleep 5
+            fi
+          done
