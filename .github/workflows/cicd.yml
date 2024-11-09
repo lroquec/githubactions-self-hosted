@@ -6,7 +6,7 @@ on:
 #  pull_request:
 #    branches: [main]
 #    types: [opened, synchronize]
-#  workflow_dispatch:
+  workflow_dispatch:
 env:
   docker_pass: ${{ secrets.DOCKER_PASS }}
   docker_user: ${{ secrets.DOCKER_USERNAME }}
@@ -23,7 +23,7 @@ jobs:
       - name: Set up Python environment
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: "3.13"
       - name: flake8 Lint
         uses: py-actions/flake8@v2
 
