@@ -159,7 +159,7 @@ jobs:
 
   deploy-dev:
     if: ${{ github.event_name == 'push' }}
-    needs: [e2e-test]
+    needs: [e2e-test,trivy-image-check]
     runs-on: "docker"
     steps:
       - name: Run docker app (stop and remove if exists)
