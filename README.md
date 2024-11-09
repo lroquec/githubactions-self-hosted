@@ -15,12 +15,10 @@
 - **`docker_user`**: Docker Hub username stored in GitHub secrets.
 - **`app_name`**: Application image name stored in GitHub variables.
 
-## Detailed Jobs
-
-### 1. avoid_redundancy
+### 1. avoid_redundancy using concurrency
 **Purpose**: Cancels redundant workflow runs.
 
-**Action Used**: `styfle/cancel-workflow-action@0.12.1`.
+## Detailed Jobs
 
 ### 2. flake8-lint
 **Purpose**: Runs code style checks using `flake8`.
@@ -50,10 +48,28 @@
 - Install dependencies with `pip`.
 - Run unit tests with `unittest`.
 
-### 5. e2e-test
+### 5. build-push
+**Purpose**: Builds and pushes the application image to Docker Hub.
+
+**Dependencies**: Depends on `unit-test`.
+
+**Actions Used**:
+- `docker/setup-qemu-action@v3` and `docker/setup-buildx-action@v3` to set up Docker.
+- `docker/build-push-action@v6` to build and push the image.
+
+### 6. trivy-image-check
+**Purpose**: Runs a vulnerability scan using Trivy.
+
+**Dependencies**: Depends on `build-push`.
+
+**Actions Used**:
+- `aquasecurity/trivy-action@0.28.0` to run the vulnerability scan.
+- `actions/upload-artifact@v4` to upload the generated report.
+
+### 7. e2e-test
 **Purpose**: Runs end-to-end tests using Selenium.
 
-**Dependencies**: Requires successful completion of `flake8-lint` and `sonarcloud`.
+**Dependencies**: Requires successful completion of `build-push`.
 
 **Environment**: Runs on a **`self-hosted`** runner.
 
@@ -65,28 +81,10 @@
 - Run tests with `pytest`.
 - Stop and remove containers and images.
 
-### 6. build-push
-**Purpose**: Builds and pushes the application image to Docker Hub.
-
-**Dependencies**: Depends on `unit-test` and `e2e-test`.
-
-**Actions Used**:
-- `docker/setup-qemu-action@v3` and `docker/setup-buildx-action@v3` to set up Docker.
-- `docker/build-push-action@v6` to build and push the image.
-
-### 7. trivy-image-check
-**Purpose**: Runs a vulnerability scan using Trivy.
-
-**Dependencies**: Depends on `build-push`.
-
-**Actions Used**:
-- `aquasecurity/trivy-action@0.28.0` to run the vulnerability scan.
-- `actions/upload-artifact@v4` to upload the generated report.
-
 ### 8. deploy-dev
 **Purpose**: Deploys the application image to a development environment.
 
-**Dependencies**: Depends on `trivy-image-check`.
+**Dependencies**: Depends on `trivy-image-check` and `e2e-test`.
 
 **Steps**:
 - Run the application container.
@@ -100,7 +98,7 @@
    - **`SONAR_TOKEN`**
    - **`IMAGE_NAME`** (as a variable)
 
-2. Trigger the workflow manually from the GitHub Actions tab.
+2. Trigger the workflow manually from the GitHub Actions tab or make a small change at app.py. I recommend changing background color because text is used in tests.
 
 ## Additional Notes
 - Make sure that on your self-hosted runner for testing and deployment you have a working docker installation and a docker network **`test_network`** created.
