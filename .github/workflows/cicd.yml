@@ -54,7 +54,7 @@ jobs:
           python -m unittest tests/unit_test_app.py
 
   e2e-test:
-    needs: [trivy-image-check]
+    needs: [build-push]
     runs-on: "self-hosted"
     steps:
       - uses: actions/checkout@v4       
